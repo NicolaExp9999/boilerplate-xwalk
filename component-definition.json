@@ -17,6 +17,18 @@
           }
         },
         {
+          "title": "Text custom",
+          "id": "textv2",
+          "plugins": {
+            "xwalk": {
+              "page": {
+                "resourceType": "plenitude-common/components/content/rich_text/v2/rich_text",
+                "template": {}
+              }
+            }
+          }
+        },
+        {
           "title": "Title",
           "id": "title",
           "plugins": {
