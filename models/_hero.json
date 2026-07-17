@@ -9,7 +9,10 @@
             "resourceType": "core/franklin/components/block/v1/block",
             "template": {
               "name": "Hero",
-              "model": "hero"
+              "model": "hero",
+              "classes_template": "default",
+              "classes_alignment": "left",
+              "classes_shadow": "light-h"
             }
           }
         }
@@ -21,74 +24,194 @@
       "id": "hero",
       "fields": [
         {
+          "component": "container",
+          "name": "logos",
+          "label": "Partner Logos",
+          "multi": true,
+          "fields": [
+            {
+              "component": "reference",
+              "valueType": "string",
+              "name": "logo",
+              "label": "Logo",
+              "multi": false
+            },
+            {
+              "component": "aem-content",
+              "name": "link",
+              "label": "Logo Link"
+            }
+          ]
+        },
+        {
           "component": "reference",
           "valueType": "string",
           "name": "image",
-          "label": "Background Image",
+          "label": "Hero Image",
           "multi": false
         },
         {
           "component": "text",
           "valueType": "string",
           "name": "imageAlt",
-          "label": "Background Alt",
+          "label": "Hero Image Alt",
           "value": ""
         },
         {
           "component": "text",
           "valueType": "string",
-          "name": "eyebrow",
-          "label": "Eyebrow",
+          "name": "content_eyebrow",
+          "label": "Tag",
           "value": "TAG H1"
         },
         {
           "component": "text",
           "valueType": "string",
-          "name": "title",
+          "name": "content_title",
           "label": "Title",
-          "value": "Con Plenitude l’energia del sole può diventare risparmio."
+          "value": "Con Plenitude l'energia del sole può diventare risparmio."
+        },
+        {
+          "component": "select",
+          "name": "content_titleType",
+          "label": "Title Type",
+          "value": "h1",
+          "options": [
+            {
+              "name": "h1",
+              "value": "h1"
+            },
+            {
+              "name": "h2",
+              "value": "h2"
+            }
+          ]
         },
         {
           "component": "richtext",
-          "name": "text",
-          "value": "",
+          "name": "content_text",
+          "value": "<p>Scegli la nostra soluzione per sfruttare virtualmente l'energia solare senza la necessità di installare un impianto fotovoltaico in casa.</p>",
           "label": "Body Copy",
           "valueType": "string"
         },
         {
+          "component": "aem-content",
+          "name": "content_cta1",
+          "label": "Primary CTA Link"
+        },
+        {
           "component": "text",
           "valueType": "string",
-          "name": "primaryLabel",
+          "name": "content_cta1Text",
           "label": "Primary CTA Label",
           "value": "Per i nuovi clienti luce"
         },
         {
-          "component": "text",
-          "valueType": "string",
-          "name": "primaryUrl",
-          "label": "Primary CTA URL",
-          "value": "#"
+          "component": "select",
+          "name": "content_cta1Type",
+          "label": "Primary CTA Type",
+          "value": "primary",
+          "options": [
+            {
+              "name": "primary",
+              "value": "primary"
+            }
+          ]
+        },
+        {
+          "component": "aem-content",
+          "name": "content_cta2",
+          "label": "Secondary CTA Link"
         },
         {
           "component": "text",
           "valueType": "string",
-          "name": "secondaryLabel",
+          "name": "content_cta2Text",
           "label": "Secondary CTA Label",
           "value": "Per i già clienti luce"
         },
         {
-          "component": "text",
-          "valueType": "string",
-          "name": "secondaryUrl",
-          "label": "Secondary CTA URL",
-          "value": "#"
+          "component": "select",
+          "name": "content_cta2Type",
+          "label": "Secondary CTA Type",
+          "value": "secondary",
+          "options": [
+            {
+              "name": "secondary",
+              "value": "secondary"
+            }
+          ]
         },
         {
           "component": "text",
           "valueType": "string",
-          "name": "note",
+          "name": "content_note",
           "label": "Note",
           "value": "Servizio sottoscrivibile solo dai clienti domestici Plenitude con offerta luce compatibile attiva e con contatore 2G con rilevazione quartoraria attiva (Vedi FAQ dedicate)."
+        },
+        {
+          "component": "select",
+          "name": "classes_template",
+          "label": "Layout",
+          "value": "default",
+          "options": [
+            {
+              "name": "Background image",
+              "value": "default"
+            },
+            {
+              "name": "Plain background",
+              "value": "background-color"
+            },
+            {
+              "name": "Image below",
+              "value": "image-bottom"
+            }
+          ]
+        },
+        {
+          "component": "select",
+          "name": "classes_alignment",
+          "label": "Alignment",
+          "value": "left",
+          "options": [
+            {
+              "name": "Left",
+              "value": "left"
+            },
+            {
+              "name": "Center",
+              "value": "center"
+            }
+          ]
+        },
+        {
+          "component": "select",
+          "name": "classes_shadow",
+          "label": "Background Overlay",
+          "value": "light-h",
+          "options": [
+            {
+              "name": "Light horizontal",
+              "value": "light-h"
+            },
+            {
+              "name": "Dark horizontal",
+              "value": "dark-h"
+            },
+            {
+              "name": "Dark vertical",
+              "value": "dark-v"
+            },
+            {
+              "name": "Light vertical",
+              "value": "light-v"
+            },
+            {
+              "name": "None",
+              "value": "none"
+            }
+          ]
         }
       ]
     }

@@ -1,85 +1,262 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
+import { moveInstrumentation } from '../../scripts/scripts.js';
 
-function getTextContent(node, fallback = '') {
-  if (!node) return fallback;
-  const text = node.textContent?.trim();
-  return text || fallback;
+const ROW = {
+  LOGOS: 0,
+  IMAGE: 1,
+  CONTENT: 2,
+};
+
+function getRowImage(row) {
+  if (!row) return null;
+  const img = row.querySelector('picture img, img');
+  if (!img) return null;
+  return { src: img.src, alt: img.alt || '', row };
 }
 
-function createAction(label, href, variant) {
+function parseLogos(row) {
+  if (!row) return [];
+
+  const items = row.querySelectorAll(':scope > ul > li, :scope > div > ul > li');
+  if (items.length) {
+    return [...items].map((item) => {
+      const img = item.querySelector('picture img, img');
+      const link = item.querySelector('a');
+      if (!img) return null;
+      return {
+        src: img.src,
+        alt: img.alt || '',
+        href: link?.getAttribute('href') || link?.href || '#',
+        row: item,
+      };
+    }).filter(Boolean);
+  }
+
+  const chunks = [...row.querySelectorAll(':scope > div > hr, :scope > hr')];
+  if (chunks.length) {
+    const logos = [];
+    const current = row.querySelector(':scope > div');
+    const segments = current ? [current] : [];
+    row.querySelectorAll(':scope > div').forEach((div) => {
+      if (div.querySelector('picture, img')) segments.push(div);
+    });
+    segments.forEach((segment) => {
+      const img = segment.querySelector('picture img, img');
+      if (!img) return;
+      const link = segment.querySelector('a');
+      logos.push({
+        src: img.src,
+        alt: img.alt || '',
+        href: link?.getAttribute('href') || link?.href || '#',
+        row: segment,
+      });
+    });
+    return logos;
+  }
+
+  const img = row.querySelector('picture img, img');
+  if (!img) return [];
+  const link = row.querySelector('a');
+  return [{
+    src: img.src,
+    alt: img.alt || '',
+    href: link?.getAttribute('href') || link?.href || '#',
+    row,
+  }];
+}
+
+function parseContent(row) {
+  if (!row) {
+    return {
+      eyebrow: '',
+      title: '',
+      bodyHtml: '',
+      primary: null,
+      secondary: null,
+      note: '',
+    };
+  }
+
+  const root = row.querySelector(':scope > div') || row;
+  const heading = root.querySelector('h1, h2, h3, h4, h5, h6');
+  const paragraphs = [...root.querySelectorAll('p')];
+  const links = [...root.querySelectorAll('a[href]')];
+
+  const eyebrowNode = paragraphs.find((p) => !p.querySelector('a') && p !== heading?.nextElementSibling);
+  const copyNode = paragraphs.find((p) => !p.querySelector('a') && p !== eyebrowNode && p.textContent.trim().length > 40);
+  const noteNode = [...paragraphs].reverse().find((p) => !p.querySelector('a'));
+
+  const primaryLink = links.find((link) => link.closest('strong, em') || link.classList.contains('primary')) || links[0];
+  const secondaryLink = links.find((link) => link !== primaryLink && !link.closest('strong, em')) || links[1];
+
+  return {
+    eyebrow: eyebrowNode?.textContent?.trim() || '',
+    title: heading?.textContent?.trim() || '',
+    bodyHtml: copyNode?.innerHTML?.trim() || paragraphs.find((p) => !p.querySelector('a') && p !== eyebrowNode && p !== noteNode)?.innerHTML?.trim() || '',
+    primary: primaryLink ? {
+      label: primaryLink.textContent.trim(),
+      href: primaryLink.getAttribute('href') || primaryLink.href,
+      row: primaryLink.closest('p') || primaryLink,
+    } : null,
+    secondary: secondaryLink ? {
+      label: secondaryLink.textContent.trim(),
+      href: secondaryLink.getAttribute('href') || secondaryLink.href,
+      row: secondaryLink.closest('p') || secondaryLink,
+    } : null,
+    note: noteNode?.textContent?.trim() || '',
+    eyebrowRow: eyebrowNode,
+    titleRow: heading,
+    copyRow: copyNode,
+    noteRow: noteNode,
+  };
+}
+
+function createLogoLink(logo) {
+  const link = document.createElement('a');
+  link.href = logo.href || '#';
+  link.className = 'hero-logo-link';
+
+  const optimizedPicture = createOptimizedPicture(logo.src, logo.alt, true, [{ width: '300' }]);
+  moveInstrumentation(logo.row, link);
+  link.append(optimizedPicture);
+
+  return link;
+}
+
+function createAction(label, href, variant, row) {
+  if (!label) return null;
+
   const action = document.createElement('a');
   action.href = href || '#';
   action.className = `hero-action ${variant}`;
   action.textContent = label;
+  if (row) moveInstrumentation(row, action);
   return action;
 }
 
-export default function decorate(block) {
-  block.classList.add('hero');
+function createHeroPicture(image, alt, eager) {
+  const pictureWrap = document.createElement('div');
+  pictureWrap.className = 'hero-picture';
 
-  const titleNode = block.querySelector('h1, h2, h3');
-  const eyebrowNode = block.querySelector('strong, em');
-  const paragraphNode = [...block.querySelectorAll('p')].find(
-    (p) => p.textContent.trim() && !p.querySelector('a'),
-  );
-  const links = [...block.querySelectorAll('a')].filter((link) => link.href && link.textContent.trim());
-  const noteNode = [...block.querySelectorAll('p')].find(
-    (p) => p.textContent.trim().length > 20 && p.textContent.toLowerCase().includes('servizio'),
-  );
+  const imageWrap = document.createElement('div');
+  imageWrap.className = 'hero-picture-image';
 
-  const imageNode = block.querySelector('picture') || block.querySelector('img');
-  const titleText = getTextContent(titleNode, 'Con Plenitude l’energia del sole può diventare risparmio.');
-  const eyebrowText = getTextContent(eyebrowNode, 'TAG H1');
-  const paragraphText = getTextContent(paragraphNode, 'Scegli la nostra soluzione per sfruttare virtualmente l’energia solare senza la necessità di installare un impianto fotovoltaico in casa.');
-  const primaryLabel = getTextContent(links[0], 'Per i nuovi clienti luce');
-  const secondaryLabel = getTextContent(links[1], 'Per i già clienti luce');
-  const noteText = getTextContent(noteNode, 'Servizio sottoscrivibile solo dai clienti domestici Plenitude con offerta luce compatibile attiva e con contatore 2G con rilevazione quartoraria attiva (Vedi FAQ dedicate).');
-
-  const media = document.createElement('div');
-  media.className = 'hero-media';
-  media.setAttribute('aria-hidden', 'true');
-
-  if (imageNode) {
-    if (imageNode.tagName === 'PICTURE') {
-      const img = imageNode.querySelector('img');
-      if (img) {
-        const optimizedPicture = createOptimizedPicture(img.src, img.alt || '', true, [{ width: '1400' }]);
-        media.append(optimizedPicture);
-      }
-    } else {
-      const optimizedPicture = createOptimizedPicture(imageNode.src, imageNode.alt || '', true, [{ width: '1400' }]);
-      media.append(optimizedPicture);
-    }
+  if (image?.src) {
+    const optimizedPicture = createOptimizedPicture(image.src, alt, eager, [{ width: '1600' }]);
+    moveInstrumentation(image.row, imageWrap);
+    imageWrap.append(optimizedPicture);
   } else {
-    const fallback = document.createElement('div');
-    fallback.className = 'hero-media-fallback';
-    media.append(fallback);
+    imageWrap.classList.add('hero-picture-fallback');
   }
 
-  const content = document.createElement('div');
-  content.className = 'hero-content';
+  pictureWrap.append(imageWrap);
+  return pictureWrap;
+}
 
-  const eyebrow = document.createElement('p');
-  eyebrow.className = 'hero-eyebrow';
-  eyebrow.textContent = eyebrowText;
+export default function decorate(block) {
+  const rows = [...block.children];
+  let template = 'default';
+  if (block.classList.contains('image-bottom')) {
+    template = 'image-bottom';
+  } else if (block.classList.contains('background-color')) {
+    template = 'background-color';
+  }
 
-  const heading = document.createElement('h1');
-  heading.className = 'hero-title';
-  heading.textContent = titleText;
+  const logos = parseLogos(rows[ROW.LOGOS]);
+  const heroImage = getRowImage(rows[ROW.IMAGE]);
+  const imageAlt = rows[ROW.IMAGE]?.querySelector('img')?.alt || '';
+  const content = parseContent(rows[ROW.CONTENT]);
 
-  const copy = document.createElement('p');
-  copy.className = 'hero-copy';
-  copy.textContent = paragraphText;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'hero-wrapper';
 
-  const actions = document.createElement('div');
-  actions.className = 'hero-actions';
-  actions.append(createAction(primaryLabel, links[0]?.getAttribute('href') || '#', 'primary'));
-  actions.append(createAction(secondaryLabel, links[1]?.getAttribute('href') || '#', 'secondary'));
+  const data = document.createElement('div');
+  data.className = 'hero-data';
 
-  const note = document.createElement('p');
-  note.className = 'hero-note';
-  note.textContent = noteText;
+  if (logos.length) {
+    const logosWrap = document.createElement('div');
+    logosWrap.className = 'hero-logos';
+    logos.forEach((logo, index) => {
+      if (index > 0) {
+        const divider = document.createElement('span');
+        divider.className = 'hero-logos-divider';
+        divider.setAttribute('aria-hidden', 'true');
+        logosWrap.append(divider);
+      }
+      logosWrap.append(createLogoLink(logo));
+    });
+    data.append(logosWrap);
+  }
 
-  content.append(eyebrow, heading, copy, actions, note);
-  block.replaceChildren(media, content);
+  if (content.eyebrow) {
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'hero-eyebrow';
+    eyebrow.textContent = content.eyebrow;
+    moveInstrumentation(content.eyebrowRow, eyebrow);
+    data.append(eyebrow);
+  }
+
+  if (content.title) {
+    const heading = document.createElement('h1');
+    heading.className = 'hero-title';
+    heading.textContent = content.title;
+    moveInstrumentation(content.titleRow, heading);
+    data.append(heading);
+  }
+
+  if (content.bodyHtml) {
+    const copy = document.createElement('div');
+    copy.className = 'hero-copy';
+    copy.innerHTML = content.bodyHtml;
+    moveInstrumentation(content.copyRow, copy);
+    data.append(copy);
+  }
+
+  const primaryAction = createAction(
+    content.primary?.label,
+    content.primary?.href,
+    'primary',
+    content.primary?.row,
+  );
+  const secondaryAction = createAction(
+    content.secondary?.label,
+    content.secondary?.href,
+    'secondary',
+    content.secondary?.row,
+  );
+
+  if (primaryAction || secondaryAction) {
+    const actions = document.createElement('div');
+    actions.className = 'hero-actions';
+    if (primaryAction) actions.append(primaryAction);
+    if (secondaryAction) actions.append(secondaryAction);
+    data.append(actions);
+  }
+
+  if (content.note) {
+    const note = document.createElement('p');
+    note.className = 'hero-note';
+    note.textContent = content.note;
+    moveInstrumentation(content.noteRow, note);
+    data.append(note);
+  }
+
+  wrapper.append(data);
+  block.replaceChildren(wrapper);
+
+  if (template === 'default') {
+    const media = createHeroPicture(heroImage, imageAlt, true);
+    media.classList.add('hero-picture-background');
+    block.prepend(media);
+
+    if (!block.classList.contains('none')) {
+      const shadow = document.createElement('div');
+      shadow.className = 'hero-shadow';
+      shadow.setAttribute('aria-hidden', 'true');
+      block.insertBefore(shadow, wrapper);
+    }
+  } else if (template === 'image-bottom') {
+    const media = createHeroPicture(heroImage, imageAlt, false);
+    block.append(media);
+  }
 }
