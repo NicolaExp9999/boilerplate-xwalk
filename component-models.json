@@ -205,6 +205,13 @@
         "label": "Logo 1 Link"
       },
       {
+        "component": "text",
+        "valueType": "string",
+        "name": "logos_link1Text",
+        "label": "Logo 1 Link Text",
+        "value": ""
+      },
+      {
         "component": "reference",
         "valueType": "string",
         "name": "logos_logo2",
@@ -215,6 +222,13 @@
         "component": "aem-content",
         "name": "logos_link2",
         "label": "Logo 2 Link"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "logos_link2Text",
+        "label": "Logo 2 Link Text",
+        "value": ""
       },
       {
         "component": "reference",

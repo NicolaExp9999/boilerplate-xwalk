@@ -1,12 +1,6 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import { moveInstrumentation } from '../../scripts/scripts.js';
 
-const ROW = {
-  LOGOS: 0,
-  IMAGE: 1,
-  CONTENT: 2,
-};
-
 function getRowImage(row) {
   if (!row) return null;
   const img = row.querySelector('picture img, img');
@@ -20,42 +14,65 @@ function isValidLogoImage(img) {
   return Boolean(src && src !== '#' && !src.startsWith('data:image/svg'));
 }
 
-function getLinkHref(node) {
-  if (!node) return '#';
-  const link = node.matches?.('a[href]') ? node : node.querySelector?.('a[href]');
-  return link?.getAttribute('href') || link?.href || '#';
+function isValidHref(href) {
+  const value = (href || '').trim();
+  return value.length > 0 && value !== '#';
 }
 
-function parseLogos(row) {
-  if (!row) return [];
+function getLinkHref(node) {
+  if (!node) return '';
+  const link = node.matches?.('a[href]') ? node : node.querySelector?.('a[href]');
+  if (!link) return '';
+  return link.getAttribute('href') || link.href || '';
+}
 
-  const root = row.querySelector(':scope > div') || row;
+function getBlockStructure(block) {
+  const rows = [...block.children];
+  const contentRow = rows.find((row) => row.querySelector('h1, h2, h3, h4, h5, h6'));
+  const contentIdx = contentRow ? rows.indexOf(contentRow) : rows.length - 1;
+  const heroImageRow = rows.slice(0, contentIdx).reverse().find((row) => row.querySelector('picture, img'));
+  const heroImageIdx = heroImageRow ? rows.indexOf(heroImageRow) : 1;
+  const logoRows = heroImageIdx > 0 ? rows.slice(0, heroImageIdx) : [rows[0]].filter(Boolean);
+
+  return {
+    logoRows,
+    imageRow: heroImageRow || rows[1],
+    contentRow: contentRow || rows[rows.length - 1],
+  };
+}
+
+function parseLogosFromRows(logoRows) {
   const logos = [];
+  let pending = null;
 
-  root.querySelectorAll('picture').forEach((picture) => {
-    const img = picture.querySelector('img');
-    if (!isValidLogoImage(img)) return;
+  logoRows.forEach((row) => {
+    const root = row.querySelector(':scope > div') || row;
+    const nodes = [...root.querySelectorAll('picture, a[href]')];
 
-    let href = '#';
-    let next = picture.nextElementSibling;
-    while (next) {
-      if (next.querySelector('picture')) break;
-      const link = next.matches('a[href]') ? next : next.querySelector('a[href]');
-      if (link) {
-        href = getLinkHref(link);
-        break;
+    nodes.forEach((node) => {
+      if (node.tagName === 'PICTURE') {
+        const img = node.querySelector('img');
+        if (!isValidLogoImage(img)) return;
+        if (pending) logos.push(pending);
+        pending = {
+          src: img.src,
+          alt: img.alt || '',
+          href: '',
+          row: node,
+        };
+        return;
       }
-      next = next.nextElementSibling;
-    }
 
-    logos.push({
-      src: img.src,
-      alt: img.alt || '',
-      href,
-      row: picture,
+      if (node.tagName === 'A' && pending) {
+        pending.href = getLinkHref(node);
+        pending.linkRow = node;
+        logos.push(pending);
+        pending = null;
+      }
     });
   });
 
+  if (pending) logos.push(pending);
   return logos;
 }
 
@@ -107,20 +124,19 @@ function parseContent(row) {
 
 function createLogoLink(logo) {
   const optimizedPicture = createOptimizedPicture(logo.src, logo.alt, true, [{ width: '300' }]);
-  const hasLink = logo.href && logo.href !== '#';
+  const link = document.createElement('a');
+  link.className = 'hero-logo-link';
 
-  if (!hasLink) {
-    const logoWrap = document.createElement('span');
-    logoWrap.className = 'hero-logo-link';
-    moveInstrumentation(logo.row, logoWrap);
-    logoWrap.append(optimizedPicture);
-    return logoWrap;
+  if (isValidHref(logo.href)) {
+    link.href = logo.href;
+    link.setAttribute('aria-label', logo.alt || 'Partner logo');
+  } else {
+    link.removeAttribute('href');
+    link.setAttribute('aria-disabled', 'true');
   }
 
-  const link = document.createElement('a');
-  link.href = logo.href;
-  link.className = 'hero-logo-link';
   moveInstrumentation(logo.row, link);
+  if (logo.linkRow) moveInstrumentation(logo.linkRow, link);
   link.append(optimizedPicture);
   return link;
 }
@@ -156,7 +172,6 @@ function createHeroPicture(image, alt, eager) {
 }
 
 export default function decorate(block) {
-  const rows = [...block.children];
   let template = 'default';
   if (block.classList.contains('image-bottom')) {
     template = 'image-bottom';
@@ -164,10 +179,11 @@ export default function decorate(block) {
     template = 'background-color';
   }
 
-  const logos = parseLogos(rows[ROW.LOGOS]);
-  const heroImage = getRowImage(rows[ROW.IMAGE]);
-  const imageAlt = rows[ROW.IMAGE]?.querySelector('img')?.alt || '';
-  const content = parseContent(rows[ROW.CONTENT]);
+  const { logoRows, imageRow, contentRow } = getBlockStructure(block);
+  const logos = parseLogosFromRows(logoRows);
+  const heroImage = getRowImage(imageRow);
+  const imageAlt = imageRow?.querySelector('img')?.alt || '';
+  const content = parseContent(contentRow);
 
   const wrapper = document.createElement('div');
   wrapper.className = 'hero-wrapper';
