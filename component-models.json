@@ -193,24 +193,28 @@
     "id": "hero",
     "fields": [
       {
-        "component": "container",
-        "name": "logos",
-        "label": "Partner Logos",
-        "multi": true,
-        "fields": [
-          {
-            "component": "reference",
-            "valueType": "string",
-            "name": "logo",
-            "label": "Logo",
-            "multi": false
-          },
-          {
-            "component": "aem-content",
-            "name": "link",
-            "label": "Logo Link"
-          }
-        ]
+        "component": "reference",
+        "valueType": "string",
+        "name": "logos_logo1",
+        "label": "Logo 1",
+        "multi": false
+      },
+      {
+        "component": "aem-content",
+        "name": "logos_link1",
+        "label": "Logo 1 Link"
+      },
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "logos_logo2",
+        "label": "Logo 2",
+        "multi": false
+      },
+      {
+        "component": "aem-content",
+        "name": "logos_link2",
+        "label": "Logo 2 Link"
       },
       {
         "component": "reference",

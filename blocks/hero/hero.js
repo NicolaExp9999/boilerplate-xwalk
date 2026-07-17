@@ -14,55 +14,49 @@ function getRowImage(row) {
   return { src: img.src, alt: img.alt || '', row };
 }
 
+function isValidLogoImage(img) {
+  if (!img) return false;
+  const src = img.getAttribute('src')?.trim();
+  return Boolean(src && src !== '#' && !src.startsWith('data:image/svg'));
+}
+
+function getLinkHref(node) {
+  if (!node) return '#';
+  const link = node.matches?.('a[href]') ? node : node.querySelector?.('a[href]');
+  return link?.getAttribute('href') || link?.href || '#';
+}
+
 function parseLogos(row) {
   if (!row) return [];
 
-  const items = row.querySelectorAll(':scope > ul > li, :scope > div > ul > li');
-  if (items.length) {
-    return [...items].map((item) => {
-      const img = item.querySelector('picture img, img');
-      const link = item.querySelector('a');
-      if (!img) return null;
-      return {
-        src: img.src,
-        alt: img.alt || '',
-        href: link?.getAttribute('href') || link?.href || '#',
-        row: item,
-      };
-    }).filter(Boolean);
-  }
+  const root = row.querySelector(':scope > div') || row;
+  const logos = [];
 
-  const chunks = [...row.querySelectorAll(':scope > div > hr, :scope > hr')];
-  if (chunks.length) {
-    const logos = [];
-    const current = row.querySelector(':scope > div');
-    const segments = current ? [current] : [];
-    row.querySelectorAll(':scope > div').forEach((div) => {
-      if (div.querySelector('picture, img')) segments.push(div);
-    });
-    segments.forEach((segment) => {
-      const img = segment.querySelector('picture img, img');
-      if (!img) return;
-      const link = segment.querySelector('a');
-      logos.push({
-        src: img.src,
-        alt: img.alt || '',
-        href: link?.getAttribute('href') || link?.href || '#',
-        row: segment,
-      });
-    });
-    return logos;
-  }
+  root.querySelectorAll('picture').forEach((picture) => {
+    const img = picture.querySelector('img');
+    if (!isValidLogoImage(img)) return;
 
-  const img = row.querySelector('picture img, img');
-  if (!img) return [];
-  const link = row.querySelector('a');
-  return [{
-    src: img.src,
-    alt: img.alt || '',
-    href: link?.getAttribute('href') || link?.href || '#',
-    row,
-  }];
+    let href = '#';
+    let next = picture.nextElementSibling;
+    while (next) {
+      if (next.querySelector('picture')) break;
+      const link = next.matches('a[href]') ? next : next.querySelector('a[href]');
+      if (link) {
+        href = getLinkHref(link);
+        break;
+      }
+      next = next.nextElementSibling;
+    }
+
+    logos.push({
+      src: img.src,
+      alt: img.alt || '',
+      href,
+      row: picture,
+    });
+  });
+
+  return logos;
 }
 
 function parseContent(row) {
@@ -112,14 +106,22 @@ function parseContent(row) {
 }
 
 function createLogoLink(logo) {
-  const link = document.createElement('a');
-  link.href = logo.href || '#';
-  link.className = 'hero-logo-link';
-
   const optimizedPicture = createOptimizedPicture(logo.src, logo.alt, true, [{ width: '300' }]);
+  const hasLink = logo.href && logo.href !== '#';
+
+  if (!hasLink) {
+    const logoWrap = document.createElement('span');
+    logoWrap.className = 'hero-logo-link';
+    moveInstrumentation(logo.row, logoWrap);
+    logoWrap.append(optimizedPicture);
+    return logoWrap;
+  }
+
+  const link = document.createElement('a');
+  link.href = logo.href;
+  link.className = 'hero-logo-link';
   moveInstrumentation(logo.row, link);
   link.append(optimizedPicture);
-
   return link;
 }
 
