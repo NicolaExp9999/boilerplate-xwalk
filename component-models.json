@@ -196,64 +196,72 @@
         "component": "reference",
         "valueType": "string",
         "name": "image",
-        "label": "Image",
+        "label": "Background Image",
         "multi": false
       },
       {
         "component": "text",
         "valueType": "string",
         "name": "imageAlt",
-        "label": "Alt",
+        "label": "Background Alt",
         "value": ""
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "eyebrow",
+        "label": "Eyebrow",
+        "value": "TAG H1"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "title",
+        "label": "Title",
+        "value": "Con Plenitude l’energia del sole può diventare risparmio."
       },
       {
         "component": "richtext",
         "name": "text",
         "value": "",
-        "label": "Text",
+        "label": "Body Copy",
         "valueType": "string"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "primaryLabel",
+        "label": "Primary CTA Label",
+        "value": "Per i nuovi clienti luce"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "primaryUrl",
+        "label": "Primary CTA URL",
+        "value": "#"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "secondaryLabel",
+        "label": "Secondary CTA Label",
+        "value": "Per i già clienti luce"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "secondaryUrl",
+        "label": "Secondary CTA URL",
+        "value": "#"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "note",
+        "label": "Note",
+        "value": "Servizio sottoscrivibile solo dai clienti domestici Plenitude con offerta luce compatibile attiva e con contatore 2G con rilevazione quartoraria attiva (Vedi FAQ dedicate)."
       }
     ]
-  },
-  {
-    "id": "quote",
-    "fields": [
-       {
-         "component": "richtext",
-         "name": "quote",
-         "value": "",
-         "label": "Quote",
-         "valueType": "string"
-       },
-       {
-         "component": "text",
-         "valueType": "string",
-         "name": "author",
-         "label": "Author",
-         "value": ""
-       },
-       {
-        "component": "select",
-        "name": "classes",
-        "value": "",
-        "label": "Background Color",
-        "description": "The quote background color",
-        "valueType": "string",
-        "options": [
-          {
-            "name": "Red",
-            "value": "bg-red"
-          },
-          {
-            "name": "Green",
-            "value": "bg-green"
-          },
-          {
-            "name": "Blue",
-            "value": "bg-blue"
-          }
-        ]
-      }
-     ]
   }
 ]

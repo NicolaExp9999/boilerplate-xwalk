@@ -9,15 +9,13 @@
     "id": "section",
     "components": [
       "text",
-      "textv2",
       "image",
       "button",
       "title",
       "hero",
       "cards",
       "columns",
-      "fragment",
-      "quote"
+      "fragment"
     ]
   },
   {
