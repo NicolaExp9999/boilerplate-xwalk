@@ -188,5 +188,80 @@
         "label": "Reference"
       }
     ]
+  },
+  {
+    "id": "hero",
+    "fields": [
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "image",
+        "label": "Background Image",
+        "multi": false
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "imageAlt",
+        "label": "Background Alt",
+        "value": ""
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "eyebrow",
+        "label": "Eyebrow",
+        "value": "TAG H1"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "title",
+        "label": "Title",
+        "value": "Con Plenitude l’energia del sole può diventare risparmio."
+      },
+      {
+        "component": "richtext",
+        "name": "text",
+        "value": "",
+        "label": "Body Copy",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "primaryLabel",
+        "label": "Primary CTA Label",
+        "value": "Per i nuovi clienti luce"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "primaryUrl",
+        "label": "Primary CTA URL",
+        "value": "#"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "secondaryLabel",
+        "label": "Secondary CTA Label",
+        "value": "Per i già clienti luce"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "secondaryUrl",
+        "label": "Secondary CTA URL",
+        "value": "#"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "note",
+        "label": "Note",
+        "value": "Servizio sottoscrivibile solo dai clienti domestici Plenitude con offerta luce compatibile attiva e con contatore 2G con rilevazione quartoraria attiva (Vedi FAQ dedicate)."
+      }
+    ]
   }
 ]

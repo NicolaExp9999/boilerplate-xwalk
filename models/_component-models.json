@@ -19,5 +19,8 @@
   },
   {
     "...": "../blocks/*/_*.json#/models"
+  },
+  {
+    "...": "./_hero.json#/models"
   }
 ]
