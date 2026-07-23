@@ -1,0 +1,288 @@
+import { createOptimizedPicture } from '../../scripts/aem.js';
+import { moveInstrumentation } from '../../scripts/scripts.js';
+
+function isValidLogoImage(img) {
+  if (!img) return false;
+  const src = img.getAttribute('src')?.trim();
+  return Boolean(src && src !== '#' && !src.startsWith('data:image/svg'));
+}
+
+function isValidHref(href) {
+  const value = (href || '').trim();
+  return value.length > 0 && value !== '#';
+}
+
+function getLinkHref(node) {
+  if (!node) return '';
+  const link = node.matches?.('a[href]') ? node : node.querySelector?.('a[href]');
+  if (!link) return '';
+  return link.getAttribute('href') || link.href || '';
+}
+
+function getRowImage(row) {
+  if (!row) return null;
+  const img = row.querySelector('picture img, img');
+  if (!img) return null;
+  return { src: img.src, alt: img.alt || '', row };
+}
+
+function getBlockStructure(block) {
+  const rows = [...block.children];
+  const contentRow = rows.find((row) => row.querySelector('h1, h2, h3, h4, h5, h6'));
+  const contentIdx = contentRow ? rows.indexOf(contentRow) : rows.length - 1;
+  const heroImageRow = rows.slice(0, contentIdx).reverse().find((row) => row.querySelector('picture, img'));
+  const heroImageIdx = heroImageRow ? rows.indexOf(heroImageRow) : 1;
+  const logoRows = heroImageIdx > 0 ? rows.slice(0, heroImageIdx) : [rows[0]].filter(Boolean);
+
+  return {
+    logoRows,
+    imageRow: heroImageRow || rows[1],
+    contentRow: contentRow || rows[rows.length - 1],
+  };
+}
+
+function parseLogosFromRows(logoRows) {
+  const logos = [];
+  let pending = null;
+
+  logoRows.forEach((row) => {
+    const root = row.querySelector(':scope > div') || row;
+    const nodes = [...root.querySelectorAll('picture, a[href]')];
+
+    nodes.forEach((node) => {
+      if (node.tagName === 'PICTURE') {
+        const img = node.querySelector('img');
+        if (!isValidLogoImage(img)) return;
+        if (pending) logos.push(pending);
+        pending = {
+          src: img.src,
+          alt: img.alt || '',
+          href: '',
+          row: node,
+        };
+        return;
+      }
+
+      if (node.tagName === 'A' && pending) {
+        pending.href = getLinkHref(node);
+        pending.linkRow = node;
+        logos.push(pending);
+        pending = null;
+      }
+    });
+  });
+
+  if (pending) logos.push(pending);
+  return logos;
+}
+
+function parseContent(row) {
+  if (!row) {
+    return {
+      eyebrow: '',
+      title: '',
+      titleTag: 'h1',
+      bodyHtml: '',
+      primary: null,
+      secondary: null,
+      note: '',
+    };
+  }
+
+  const root = row.querySelector(':scope > div') || row;
+  const heading = root.querySelector('h1, h2, h3, h4, h5, h6');
+  const paragraphs = [...root.querySelectorAll('p')];
+  const links = [...root.querySelectorAll('a[href]')];
+
+  const eyebrowNode = paragraphs.find((p) => !p.querySelector('a') && p !== heading?.nextElementSibling);
+  const copyNode = paragraphs.find((p) => !p.querySelector('a')
+    && p !== eyebrowNode
+    && p.textContent.trim().length > 40);
+  const noteNode = [...paragraphs].reverse().find((p) => !p.querySelector('a'));
+
+  const primaryLink = links.find((link) => link.closest('strong, em')
+    || link.classList.contains('primary')) || links[0];
+  const secondaryLink = links.find((link) => link !== primaryLink
+    && !link.closest('strong, em')) || links[1];
+
+  return {
+    eyebrow: eyebrowNode?.textContent?.trim() || '',
+    title: heading?.textContent?.trim() || '',
+    titleTag: heading?.tagName?.toLowerCase() || 'h1',
+    bodyHtml: copyNode?.innerHTML?.trim()
+      || paragraphs.find((p) => !p.querySelector('a') && p !== eyebrowNode && p !== noteNode)?.innerHTML?.trim()
+      || '',
+    primary: primaryLink ? {
+      label: primaryLink.textContent.trim(),
+      href: getLinkHref(primaryLink),
+      row: primaryLink.closest('p') || primaryLink,
+    } : null,
+    secondary: secondaryLink ? {
+      label: secondaryLink.textContent.trim(),
+      href: getLinkHref(secondaryLink),
+      row: secondaryLink.closest('p') || secondaryLink,
+    } : null,
+    note: noteNode?.textContent?.trim() || '',
+    eyebrowRow: eyebrowNode,
+    titleRow: heading,
+    copyRow: copyNode,
+    noteRow: noteNode,
+  };
+}
+
+function createLogoLink(logo) {
+  const optimizedPicture = createOptimizedPicture(logo.src, logo.alt, true, [{ width: '300' }]);
+  const link = document.createElement('a');
+  link.className = 'hero-logo-link';
+
+  if (isValidHref(logo.href)) {
+    link.href = logo.href;
+    link.setAttribute('aria-label', logo.alt || 'Partner logo');
+  } else {
+    link.removeAttribute('href');
+    link.setAttribute('aria-disabled', 'true');
+  }
+
+  moveInstrumentation(logo.row, link);
+  if (logo.linkRow) moveInstrumentation(logo.linkRow, link);
+  link.append(optimizedPicture);
+  return link;
+}
+
+function createAction(label, href, variant, row) {
+  if (!label) return null;
+
+  const action = document.createElement('a');
+  action.href = href || '#';
+  action.className = `hero-action ${variant}`;
+  action.textContent = label;
+  if (row) moveInstrumentation(row, action);
+  return action;
+}
+
+function createHeroPicture(image, alt, eager) {
+  const pictureWrap = document.createElement('div');
+  pictureWrap.className = 'hero-picture';
+
+  const imageWrap = document.createElement('div');
+  imageWrap.className = 'hero-picture-image';
+
+  if (image?.src) {
+    const optimizedPicture = createOptimizedPicture(image.src, alt, eager, [{ width: '1600' }]);
+    moveInstrumentation(image.row, imageWrap);
+    imageWrap.append(optimizedPicture);
+  } else {
+    imageWrap.classList.add('hero-picture-fallback');
+  }
+
+  pictureWrap.append(imageWrap);
+  return pictureWrap;
+}
+
+export default function decorate(block) {
+  let template = 'default';
+  if (block.classList.contains('image-bottom')) {
+    template = 'image-bottom';
+  } else if (block.classList.contains('background-color')) {
+    template = 'background-color';
+  }
+
+  const { logoRows, imageRow, contentRow } = getBlockStructure(block);
+  const logos = parseLogosFromRows(logoRows);
+  const heroImage = getRowImage(imageRow);
+  const imageAlt = imageRow?.querySelector('img')?.alt || '';
+  const content = parseContent(contentRow);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'hero-wrapper';
+
+  const data = document.createElement('div');
+  data.className = 'hero-data';
+
+  if (logos.length) {
+    const logosWrap = document.createElement('div');
+    logosWrap.className = 'hero-logos';
+    logos.forEach((logo, index) => {
+      if (index > 0) {
+        const divider = document.createElement('span');
+        divider.className = 'hero-logos-divider';
+        divider.setAttribute('aria-hidden', 'true');
+        logosWrap.append(divider);
+      }
+      logosWrap.append(createLogoLink(logo));
+    });
+    data.append(logosWrap);
+  }
+
+  if (content.eyebrow) {
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'hero-eyebrow';
+    eyebrow.textContent = content.eyebrow;
+    moveInstrumentation(content.eyebrowRow, eyebrow);
+    data.append(eyebrow);
+  }
+
+  if (content.title) {
+    const heading = document.createElement(content.titleTag);
+    heading.className = 'hero-title';
+    heading.textContent = content.title;
+    moveInstrumentation(content.titleRow, heading);
+    data.append(heading);
+  }
+
+  if (content.bodyHtml) {
+    const copy = document.createElement('div');
+    copy.className = 'hero-copy';
+    copy.innerHTML = content.bodyHtml;
+    moveInstrumentation(content.copyRow, copy);
+    data.append(copy);
+  }
+
+  const primaryAction = createAction(
+    content.primary?.label,
+    content.primary?.href,
+    'primary',
+    content.primary?.row,
+  );
+  const secondaryAction = createAction(
+    content.secondary?.label,
+    content.secondary?.href,
+    'secondary',
+    content.secondary?.row,
+  );
+
+  if (primaryAction || secondaryAction) {
+    const actions = document.createElement('div');
+    actions.className = 'hero-actions';
+    if (primaryAction) actions.append(primaryAction);
+    if (secondaryAction) actions.append(secondaryAction);
+    data.append(actions);
+  }
+
+  if (content.note) {
+    const note = document.createElement('p');
+    note.className = 'hero-note';
+    note.textContent = content.note;
+    moveInstrumentation(content.noteRow, note);
+    data.append(note);
+  }
+
+  wrapper.append(data);
+  block.replaceChildren(wrapper);
+
+  if (template === 'default') {
+    const media = createHeroPicture(heroImage, imageAlt, true);
+    media.classList.add('hero-picture-background');
+    block.prepend(media);
+
+    if (!block.classList.contains('none')) {
+      const shadow = document.createElement('div');
+      shadow.className = 'hero-shadow';
+      shadow.setAttribute('aria-hidden', 'true');
+      block.insertBefore(shadow, wrapper);
+    }
+  } else if (template === 'image-bottom') {
+    const media = createHeroPicture(heroImage, imageAlt, false);
+    block.append(media);
+  }
+}
